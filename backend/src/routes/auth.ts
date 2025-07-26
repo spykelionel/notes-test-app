@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { Request, Response, Router } from "express";
 import { generateToken } from "../middleware/auth";
 import { validateLogin, validateRegister } from "../middleware/validation";
@@ -55,21 +56,35 @@ router.post(
   validateLogin,
   async (req: Request, res: Response): Promise<void> => {
     try {
+      console.log("Login request received");
       const { email, password } = req.body;
 
       // Find user by email
       const user = await User.findOne({ email });
+      console.log("user", user);
       if (!user) {
         res.status(401).json({ message: "Invalid credentials" });
         return;
       }
 
       // Check password
-      const isPasswordValid = await user.comparePassword(password);
-      if (!isPasswordValid) {
-        res.status(401).json({ message: "Invalid credentials" });
-        return;
-      }
+      console.log("password", password);
+      console.log("user.password", user.password);
+      await bcrypt
+        .compare(password, user.password)
+        .then((result) => {
+          console.log("result", result);
+          if (!result) {
+            res.status(401).json({ message: "Invalid credentials" });
+            return;
+          }
+        })
+        .catch((err) => {
+          console.log("err", err);
+          res.status(401).json({ message: "Invalid credentials" });
+          return;
+        });
+      // console.log("isPasswordValid", isPasswordValid);
 
       // Generate token
       const token = generateToken(user._id);

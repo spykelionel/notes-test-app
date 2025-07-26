@@ -81,10 +81,14 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: any) => {
     if (error.response?.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+      // Only redirect if it's not a login request
+      const isLoginRequest = error.config?.url?.includes("/auth/login");
+      if (!isLoginRequest) {
+        // Clear invalid token
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        // window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

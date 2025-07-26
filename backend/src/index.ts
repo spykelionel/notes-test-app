@@ -87,6 +87,9 @@ const connectDB = async (): Promise<void> => {
 const startServer = async (): Promise<void> => {
   await connectDB();
 
+  // Seed default user
+  // await seedDefaultUser();
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || "development"}`);

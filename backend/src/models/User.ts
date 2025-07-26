@@ -59,7 +59,9 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
+  console.log("candidatePassword", candidatePassword);
+  console.log("this.password", this.password);
+  return await bcrypt.compare(candidatePassword.trim(), this.password);
 };
 
 // Remove password from JSON output

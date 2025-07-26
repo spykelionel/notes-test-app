@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import { Request, Response, Router } from "express";
 import { generateToken } from "../middleware/auth";
 import { validateLogin, validateRegister } from "../middleware/validation";
@@ -66,38 +65,54 @@ router.post(
         res.status(401).json({ message: "Invalid credentials" });
         return;
       }
-
-      // Check password
-      console.log("password", password);
-      console.log("user.password", user.password);
-      await bcrypt
-        .compare(password, user.password)
-        .then((result) => {
-          console.log("result", result);
-          if (!result) {
-            res.status(401).json({ message: "Invalid credentials" });
-            return;
-          }
-        })
-        .catch((err) => {
-          console.log("err", err);
+      user.comparePassword(password).then((result) => {
+        if (!result) {
           res.status(401).json({ message: "Invalid credentials" });
           return;
+        }
+        const token = generateToken(user._id);
+        res.status(201).json({
+          message: "Login successful",
+          accessToken: token,
+          user,
         });
+        return;
+      });
+
+      // bcrypt.compare(password, user.password, (err, result) => {
+      //   if (err) {
+      //     console.log("err", err);
+      //     res.status(401).json({ message: "Invalid credentials" });
+      //     return;
+      //   }
+      //   console.log("result", result);
+      //   if (!result) {
+      //     res.status(401).json({ message: "Invalid credentials" });
+      //     return;
+      //   }
+      //   const token = generateToken(user._id);
+      //   res.status(201).json({
+      //     message: "Login successful",
+      //     accessToken: token,
+      //     user,
+      //   });
+      //   return;
+      // });
+
       // console.log("isPasswordValid", isPasswordValid);
 
-      // Generate token
-      const token = generateToken(user._id);
+      // // Generate token
+      // const token = generateToken(user._id);
 
-      res.json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-        },
-      });
+      // res.status(201).json({
+      //   message: "Login successful",
+      //   token,
+      //   user: {
+      //     id: user._id,
+      //     name: user.name,
+      //     email: user.email,
+      //   },
+      // });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
     }

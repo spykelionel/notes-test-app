@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { envConfig } from "../config/env.config";
 import { User } from "../models/User";
 
 interface AuthRequest extends Request {
@@ -19,7 +20,7 @@ export const auth = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+    const decoded = jwt.verify(token, envConfig.JWT_SECRET as string) as {
       id: string;
     };
     const user = await User.findById(decoded.id).select("-password");
@@ -37,5 +38,7 @@ export const auth = async (
 };
 
 export const generateToken = (userId: string): string => {
-  return jwt.sign({ id: userId }, "secret", { expiresIn: "1h" });
+  return jwt.sign({ id: userId }, `${envConfig.JWT_SECRET}`, {
+    expiresIn: "24h",
+  });
 };

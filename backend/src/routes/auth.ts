@@ -1,6 +1,10 @@
 import { Request, Response, Router } from "express";
 import { generateToken } from "../middleware/auth";
-import { validateLogin, validateRegister } from "../middleware/validation";
+import {
+  handleValidationErrors,
+  validateLogin,
+  validateRegister,
+} from "../middleware/validation";
 import { User } from "../models/User";
 
 const router = Router();
@@ -9,6 +13,7 @@ const router = Router();
 router.post(
   "/register",
   validateRegister,
+  handleValidationErrors, // Add this back
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { name, email, password } = req.body;
@@ -44,6 +49,7 @@ router.post(
         },
       });
     } catch (error) {
+      console.error("Registration error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -53,6 +59,7 @@ router.post(
 router.post(
   "/login",
   validateLogin,
+  handleValidationErrors, // Add this back
   async (req: Request, res: Response): Promise<void> => {
     try {
       console.log("Login request received");
@@ -61,59 +68,35 @@ router.post(
       // Find user by email
       const user = await User.findOne({ email });
       console.log("user", user);
+
       if (!user) {
         res.status(401).json({ message: "Invalid credentials" });
         return;
       }
-      user.comparePassword(password).then((result) => {
-        if (!result) {
-          res.status(401).json({ message: "Invalid credentials" });
-          return;
-        }
-        const token = generateToken(user._id);
-        res.status(201).json({
-          message: "Login successful",
-          accessToken: token,
-          user,
-        });
+
+      // Use the comparePassword method from the User model
+      const isPasswordValid = await user.comparePassword(password);
+      console.log("isPasswordValid", isPasswordValid);
+
+      if (!isPasswordValid) {
+        res.status(401).json({ message: "Invalid credentials" });
         return;
+      }
+
+      // Generate token
+      const token = generateToken(user._id);
+
+      res.json({
+        message: "Login successful",
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
       });
-
-      // bcrypt.compare(password, user.password, (err, result) => {
-      //   if (err) {
-      //     console.log("err", err);
-      //     res.status(401).json({ message: "Invalid credentials" });
-      //     return;
-      //   }
-      //   console.log("result", result);
-      //   if (!result) {
-      //     res.status(401).json({ message: "Invalid credentials" });
-      //     return;
-      //   }
-      //   const token = generateToken(user._id);
-      //   res.status(201).json({
-      //     message: "Login successful",
-      //     accessToken: token,
-      //     user,
-      //   });
-      //   return;
-      // });
-
-      // console.log("isPasswordValid", isPasswordValid);
-
-      // // Generate token
-      // const token = generateToken(user._id);
-
-      // res.status(201).json({
-      //   message: "Login successful",
-      //   token,
-      //   user: {
-      //     id: user._id,
-      //     name: user.name,
-      //     email: user.email,
-      //   },
-      // });
     } catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }

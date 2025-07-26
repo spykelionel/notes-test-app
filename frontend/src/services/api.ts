@@ -1,8 +1,24 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-
 const BASE_URL = "http://localhost:5000/api";
 
-// API response interfaces
+// Interfaces
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface Note {
+  _id: string;
+  title: string;
+  content: string;
+  user: string;
+  isPinned: boolean;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -11,11 +27,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   message: string;
   token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  user: User;
 }
 
 export interface RegisterRequest {
@@ -24,28 +36,17 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface Note {
-  _id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  isPinned: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateNoteRequest {
-  title: string;
-  content: string;
-  tags?: string[];
-  isPinned?: boolean;
-}
-
-export interface UpdateNoteRequest extends CreateNoteRequest {}
-
-export interface NotesResponse {
+export interface RegisterResponse {
   message: string;
-  notes: Note[];
+  token: string;
+  user: User;
+}
+
+export interface NoteRequest {
+  title: string;
+  content: string;
+  isPinned?: boolean;
+  tags?: string[];
 }
 
 export interface NoteResponse {
@@ -53,16 +54,19 @@ export interface NoteResponse {
   note: Note;
 }
 
-// Create axios instance with default configuration
+export interface NotesResponse {
+  message: string;
+  notes: Note[];
+}
+
 const api: AxiosInstance = axios.create({
-  baseURL: `${BASE_URL}`,
+  baseURL: BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor to add auth token
 api.interceptors.request.use(
   (config: any) => {
     const token = localStorage.getItem("token");
@@ -76,7 +80,6 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle common errors
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: any) => {
@@ -84,7 +87,6 @@ api.interceptors.response.use(
       // Only redirect if it's not a login request
       const isLoginRequest = error.config?.url?.includes("/auth/login");
       if (!isLoginRequest) {
-        // Clear invalid token
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         // window.location.href = "/login";
@@ -94,59 +96,54 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API methods
+// Auth API
 export const authAPI = {
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>("/auth/login", credentials);
+  login: async (data: LoginRequest): Promise<LoginResponse> => {
+    const response = await api.post("/auth/login", data);
     return response.data;
   },
 
-  register: async (userData: RegisterRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>("/auth/register", userData);
+  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
+    const response = await api.post("/auth/register", data);
     return response.data;
   },
 };
 
-// Notes API methods
+// Notes API
 export const notesAPI = {
   getAll: async (): Promise<NotesResponse> => {
-    const response = await api.get<NotesResponse>("/notes");
+    const response = await api.get("/notes");
     return response.data;
   },
 
   getById: async (id: string): Promise<NoteResponse> => {
-    const response = await api.get<NoteResponse>(`/notes/${id}`);
+    const response = await api.get(`/notes/${id}`);
     return response.data;
   },
 
-  create: async (noteData: CreateNoteRequest): Promise<NoteResponse> => {
-    const response = await api.post<NoteResponse>("/notes", noteData);
+  create: async (data: NoteRequest): Promise<NoteResponse> => {
+    const response = await api.post("/notes", data);
     return response.data;
   },
 
   update: async (
     id: string,
-    noteData: UpdateNoteRequest
+    data: Partial<NoteRequest>
   ): Promise<NoteResponse> => {
-    const response = await api.put<NoteResponse>(`/notes/${id}`, noteData);
+    const response = await api.put(`/notes/${id}`, data);
     return response.data;
   },
 
-  delete: async (id: string): Promise<void> => {
-    await api.delete(`/notes/${id}`);
+  delete: async (id: string): Promise<{ message: string }> => {
+    const response = await api.delete(`/notes/${id}`);
+    return response.data;
   },
 };
 
-// Health check
+// Health API
 export const healthAPI = {
-  check: async (): Promise<{
-    status: string;
-    timestamp: string;
-    environment: string;
-  }> => {
+  check: async (): Promise<{ message: string }> => {
     const response = await api.get("/health");
     return response.data;
   },
 };
-
-export default api;

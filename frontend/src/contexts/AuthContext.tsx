@@ -23,24 +23,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
-
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
-  );
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+
+    if (savedToken && savedUser) {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser));
+    }
+
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -48,14 +50,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       notesAPI
         .getAll()
         .then(() => {
-          // If successful, token is valid
-          const userData = localStorage.getItem("user");
-          if (userData) {
-            setUser(JSON.parse(userData));
-          }
+          // Token is valid, user is authenticated
         })
         .catch(() => {
-          // Token is invalid, clear it
           logout();
         })
         .finally(() => {
@@ -88,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem("user");
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     token,
     login,
@@ -97,4 +94,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

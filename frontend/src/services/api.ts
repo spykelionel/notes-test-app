@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 
+const BASE_URL = "http://localhost:5000/api";
+
 // API response interfaces
 export interface LoginRequest {
   email: string;
@@ -53,7 +55,7 @@ export interface NoteResponse {
 
 // Create axios instance with default configuration
 const api: AxiosInstance = axios.create({
-  baseURL: "/api",
+  baseURL: `${BASE_URL}`,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

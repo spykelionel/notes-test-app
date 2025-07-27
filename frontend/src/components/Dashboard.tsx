@@ -133,6 +133,7 @@ const Dashboard: React.FC = () => {
           <button
             onClick={handleCreateNote}
             className="btn-primary flex items-center space-x-2"
+            data-testid="new-note-button"
           >
             <Plus className="h-4 w-4" />
             <span>New Note</span>

@@ -107,6 +107,7 @@ const NoteList: React.FC<NoteListProps> = ({
                 }}
                 className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
                 title="Edit note"
+                data-testid="edit-note-button"
               >
                 <Edit className="h-4 w-4" />
               </button>
@@ -117,6 +118,7 @@ const NoteList: React.FC<NoteListProps> = ({
                 }}
                 className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                 title="Delete note"
+                data-testid="delete-note-button"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

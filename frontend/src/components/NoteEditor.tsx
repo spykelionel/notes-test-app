@@ -85,6 +85,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
           <button
             onClick={handleSave}
             className="btn-primary flex items-center gap-2"
+            data-testid="save-note-button"
           >
             <Save className="h-4 w-4" />
             Save Note
@@ -92,6 +93,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
           <button
             onClick={onCancel}
             className="btn-secondary flex items-center gap-2"
+            data-testid="cancel-note-button"
           >
             <X className="h-4 w-4" />
             Cancel
@@ -116,6 +118,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
             className={`input ${errors.title ? "border-red-500" : ""}`}
             placeholder="Note title"
             maxLength={100}
+            data-testid="title-input"
           />
           {errors.title && (
             <p className="mt-1 text-sm text-red-600">{errors.title}</p>
@@ -140,10 +143,16 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
             }`}
             placeholder="Write your note content here..."
             maxLength={10000}
+            data-testid="content-textarea"
           />
           {errors.content && (
             <p className="mt-1 text-sm text-red-600">{errors.content}</p>
           )}
+          <div className="flex items-center justify-between">
+            <p className="mt-1 text-xs text-gray-500">
+              {content.length > 1000 && "Long Note"}
+            </p>
+          </div>
           <p className="mt-1 text-xs text-gray-500">
             {content.length}/10000 characters
           </p>
@@ -164,6 +173,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
             onChange={(e) => setTags(e.target.value)}
             className="input"
             placeholder="Add tags (comma separated)"
+            data-testid="tags-input"
           />
           <p className="mt-1 text-xs text-gray-500">
             Separate tags with commas (max 10 tags)
@@ -178,6 +188,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
             checked={isPinned}
             onChange={(e) => setIsPinned(e.target.checked)}
             className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+            data-testid="pin-checkbox"
           />
           <label
             htmlFor="pin"

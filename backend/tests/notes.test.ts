@@ -16,7 +16,7 @@ describe("Notes Endpoints", () => {
 
   const testUserData = {
     name: "Test User",
-    email: "test@example.com",
+    email: "user@example.com",
     password: "password123",
   };
 

@@ -9,7 +9,7 @@ app.use("/api/auth", authRoutes);
 describe("Authentication Endpoints", () => {
   const testUser = {
     name: "Test User",
-    email: "test@example.com",
+    email: "user@example.com",
     password: "password123",
   };
 
@@ -92,7 +92,7 @@ describe("Authentication Endpoints", () => {
         .post("/api/auth/register")
         .send({
           name: "",
-          email: "test@example.com",
+          email: "user@example.com",
           password: "password123",
         })
         .expect(400);
@@ -107,7 +107,7 @@ describe("Authentication Endpoints", () => {
         .post("/api/auth/register")
         .send({
           name: "A".repeat(101), // More than 100 characters
-          email: "test@example.com",
+          email: "user@example.com",
           password: "password123",
         })
         .expect(400);
@@ -137,7 +137,7 @@ describe("Authentication Endpoints", () => {
         .post("/api/auth/register")
         .send({
           name: "A".repeat(51), // More than 50 characters
-          email: "test@example.com",
+          email: "user@example.com",
           password: "password123",
         })
         .expect(400);
@@ -182,7 +182,7 @@ describe("Authentication Endpoints", () => {
         .post("/api/auth/register")
         .send({
           name: "Test User",
-          email: "test@example.com",
+          email: "user@example.com",
           password: "   ",
         })
         .expect(400);
@@ -380,7 +380,7 @@ describe("Authentication Endpoints", () => {
       const response = await request(app)
         .post("/api/auth/login")
         .send({
-          email: "TEST@example.com", // Different case
+          email: "user@example.com", // Different case
           password: testUser.password,
         })
         .expect(200); // Should work due to email normalization
@@ -392,7 +392,7 @@ describe("Authentication Endpoints", () => {
       const response = await request(app)
         .post("/api/auth/login")
         .send({
-          email: "  test@example.com  ", // With spaces
+          email: "  user@example.com  ", // With spaces
           password: testUser.password,
         })
         .expect(400); // Email validation fails for spaces

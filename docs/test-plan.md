@@ -246,7 +246,7 @@ npm run test:coverage
 ```javascript
 // Test user data
 const testUser = {
-  email: "test@example.com",
+  email: "user@example.com",
   password: "password123",
 };
 

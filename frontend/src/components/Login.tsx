@@ -117,7 +117,7 @@ const Login: React.FC = () => {
                 className="font-medium text-primary-600 hover:text-primary-500"
                 onClick={() => {
                   // For demo purposes, create a test account
-                  setEmail("test@example.com");
+                  setEmail("user@example.com");
                   setPassword("password123");
                 }}
               >

@@ -113,7 +113,7 @@ async function setupTestData() {
     const hashedPassword = await bcrypt.hash('password123', 12);
     const user = new User({
       name: 'Test User',
-      email: 'test@example.com',
+      email: 'user@example.com',
       password: hashedPassword,
     });
     await user.save();
@@ -146,7 +146,7 @@ async function setupTestData() {
     await Note.insertMany(notes);
 
     console.log('✅ Test data created successfully!');
-    console.log('📧 Login credentials: test@example.com / password123');
+    console.log('📧 Login credentials: user@example.com / password123');
   } catch (error) {
     console.error('❌ Error setting up test data:', error);
   } finally {
@@ -192,7 +192,7 @@ echo "🌐 Frontend: http://localhost:3000"
 echo "🔧 Backend: http://localhost:5000"
 echo "📊 API Health: http://localhost:5000/health"
 echo ""
-echo "📧 Test credentials: test@example.com / password123"
+echo "📧 Test credentials: user@example.com / password123"
 echo ""
 echo "Press Ctrl+C to stop all servers"
 
@@ -301,7 +301,7 @@ echo "  ./run-tests.sh backend   # Run only API tests"
 echo "  ./run-tests.sh frontend  # Run only UI tests"
 echo ""
 echo "📧 Test Credentials:"
-echo "  Email: test@example.com"
+echo "  Email: user@example.com"
 echo "  Password: password123"
 echo ""
 echo "🔧 Manual Setup (if needed):"

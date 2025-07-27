@@ -4,8 +4,17 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apk add --no-cache curl chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont
+# Install system dependencies for Playwright on Alpine
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    curl \
+    bash
 
 # Set environment variables for Playwright
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
@@ -19,19 +28,16 @@ COPY backend/package*.json ./backend/
 RUN cd frontend && npm ci
 RUN cd backend && npm ci
 
-# Install Playwright browsers
-RUN cd frontend && npx playwright install --with-deps chromium
-
 # Copy source code
 COPY frontend/ ./frontend/
 COPY backend/ ./backend/
 
 # Build both applications
-RUN cd backend && npm run build
+RUN cd backend && npx tsc --project tsconfig.json
 RUN cd frontend && npm run build
 
 # Create test script
-RUN echo '#!/bin/sh\n\
+RUN echo '#!/bin/bash\n\
 echo "Starting test environment..."\n\
 echo "Backend tests:"\n\
 cd backend && npm test\n\

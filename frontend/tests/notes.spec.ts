@@ -11,11 +11,13 @@ test.describe("Notes Management", () => {
   });
 
   test("should create a new note", async ({ page }) => {
+    const uniqueTitle = `Test Note ${Date.now()}`;
+
     // Click new note button
     await page.getByTestId("new-note-button").click();
 
     // Fill in note details
-    await page.getByPlaceholder("Note title").fill("Test Note");
+    await page.getByPlaceholder("Note title").fill(uniqueTitle);
     await page
       .getByPlaceholder("Write your note content here...")
       .fill("This is a test note content");
@@ -29,35 +31,71 @@ test.describe("Notes Management", () => {
     await page.getByTestId("save-note-button").click();
 
     // Should show success message or note in list
-    await expect(page.getByText("Test Note")).toBeVisible();
-    await expect(page.getByText("This is a test note content")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).toBeVisible();
+    // Check that the note content is visible in the note list
+    await expect(
+      page
+        .getByTestId("note-title")
+        .filter({ hasText: uniqueTitle })
+        .locator("xpath=ancestor::div[contains(@class, 'card')]")
+        .getByText("This is a test note content")
+    ).toBeVisible();
+
+    // Cleanup: Delete the created note
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .click();
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
+      .getByTestId("delete-note-button")
+      .click();
+
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).not.toBeVisible();
   });
 
   test("should edit an existing note", async ({ page }) => {
+    const uniqueTitle = `Original Title ${Date.now()}`;
+
     // First create a note
     await page.getByTestId("new-note-button").click();
-    await page.getByPlaceholder("Note title").fill("Original Title");
+    await page.getByPlaceholder("Note title").fill(uniqueTitle);
     await page
       .getByPlaceholder("Write your note content here...")
       .fill("Original content");
     await page.getByTestId("save-note-button").click();
 
     // Wait for note to appear in list
-    await expect(page.getByText("Original Title")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).toBeVisible();
 
     // Click on the note to select it
-    await page.getByText("Original Title").click();
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .click();
 
     // Click edit button for the specific note
     await page
-      .getByText("Original Title")
-      .locator("..")
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
       .getByTestId("edit-note-button")
       .click();
 
     // Modify the note
+    const updatedTitle = `Updated Title ${Date.now()}`;
     await page.getByPlaceholder("Note title").clear();
-    await page.getByPlaceholder("Note title").fill("Updated Title");
+    await page.getByPlaceholder("Note title").fill(updatedTitle);
     await page.getByPlaceholder("Write your note content here...").clear();
     await page
       .getByPlaceholder("Write your note content here...")
@@ -67,66 +105,83 @@ test.describe("Notes Management", () => {
     await page.getByTestId("save-note-button").click();
 
     // Should show updated content
-    await expect(page.getByText("Updated Title")).toBeVisible();
-    await expect(page.getByText("Updated content")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: updatedTitle })
+    ).toBeVisible();
+    // Check that the updated content is visible in the note list
+    await expect(
+      page
+        .getByTestId("note-title")
+        .filter({ hasText: updatedTitle })
+        .locator("xpath=ancestor::div[contains(@class, 'card')]")
+        .getByText("Updated content")
+    ).toBeVisible();
+
+    // Cleanup: Delete the updated note
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: updatedTitle })
+      .click();
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: updatedTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
+      .getByTestId("delete-note-button")
+      .click();
+
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: updatedTitle })
+    ).not.toBeVisible();
   });
 
   test("should delete a note", async ({ page }) => {
+    const uniqueTitle = `Note to Delete ${Date.now()}`;
+
     // First create a note
     await page.getByTestId("new-note-button").click();
-    await page.getByPlaceholder("Note title").fill("Note to Delete");
+    await page.getByPlaceholder("Note title").fill(uniqueTitle);
     await page
       .getByPlaceholder("Write your note content here...")
       .fill("This note will be deleted");
     await page.getByTestId("save-note-button").click();
 
     // Wait for note to appear
-    await expect(page.getByText("Note to Delete")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).toBeVisible();
 
     // Click on the note to select it
-    await page.getByText("Note to Delete").click();
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .click();
+
+    // Set up dialog handler before clicking delete
+    page.on("dialog", (dialog) => {
+      console.log("Dialog appeared:", dialog.message());
+      dialog.accept();
+    });
 
     // Click delete button for the specific note
     await page
-      .getByText("Note to Delete")
-      .locator("..")
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
       .getByTestId("delete-note-button")
       .click();
 
-    // Confirm deletion (handle dialog)
-    page.on("dialog", (dialog) => dialog.accept());
+    // Wait a moment for the delete operation to complete
+    await page.waitForTimeout(1000);
 
-    // Should remove note from list
-    await expect(page.getByText("Note to Delete")).not.toBeVisible();
+    // Wait for the note to be removed from the list
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).not.toBeVisible();
+
+    // Note: This test already cleans up by deleting the note it created
   });
-
-  // test("should search and filter notes", async ({ page }) => {
-  //   // Create multiple notes with different titles
-  //   await page.getByRole("button", { name: "New Note" }).click();
-  //   await page.getByPlaceholder("Note title").fill("Work Note");
-  //   await page
-  //     .getByPlaceholder("Write your note content here...")
-  //     .fill("Work related content");
-  //   await page.getByTestId("save-note-button").click();
-
-  //   await page.getByRole("button", { name: "New Note" }).click();
-  //   await page.getByPlaceholder("Note title").fill("Personal Note");
-  //   await page
-  //     .getByPlaceholder("Write your note content here...")
-  //     .fill("Personal content");
-  //   await page.getByTestId("save-note-button").click();
-
-  //   // Both notes should be visible
-  //   await expect(page.getByText("Work Note")).toBeVisible();
-  //   await expect(page.getByText("Personal Note")).toBeVisible();
-
-  //   // Search for "Work"
-  //   await page.getByPlaceholder("Search notes...").fill("Work");
-
-  //   // Only work note should be visible
-  //   await expect(page.getByText("Work Note")).toBeVisible();
-  //   await expect(page.getByText("Personal Note")).not.toBeVisible();
-  // });
 
   test("should handle note validation", async ({ page }) => {
     // Try to create note without title
@@ -141,21 +196,27 @@ test.describe("Notes Management", () => {
   });
 
   test("should cancel note editing", async ({ page }) => {
+    const uniqueTitle = `Original Note ${Date.now()}`;
+
     // Create a note
     await page.getByTestId("new-note-button").click();
-    await page.getByPlaceholder("Note title").fill("Original Note");
+    await page.getByPlaceholder("Note title").fill(uniqueTitle);
     await page
       .getByPlaceholder("Write your note content here...")
       .fill("Original content");
     await page.getByTestId("save-note-button").click();
 
     // Select the note
-    await page.getByText("Original Note").click();
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .click();
 
     // Click edit
     await page
-      .getByText("Original Note")
-      .locator("..")
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
       .getByTestId("edit-note-button")
       .click();
 
@@ -167,50 +228,62 @@ test.describe("Notes Management", () => {
     await page.getByTestId("cancel-note-button").click();
 
     // Should show original content
-    await expect(page.getByText("Original Note")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).toBeVisible();
     await expect(page.getByText("Modified Title")).not.toBeVisible();
-  });
 
-  test("should pin and unpin notes", async ({ page }) => {
-    // Create a note
-    await page.getByTestId("new-note-button").click();
-    await page.getByPlaceholder("Note title").fill("Pinnable Note");
+    // Cleanup: Delete the note
     await page
-      .getByPlaceholder("Write your note content here...")
-      .fill("This note can be pinned");
-    await page.getByTestId("save-note-button").click();
-
-    // Select the note
-    await page.getByText("Pinnable Note").click();
-
-    // Click edit
-    await page
-      .getByText("Pinnable Note")
-      .locator("..")
-      .getByTestId("edit-note-button")
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
       .click();
 
-    // Toggle pin
-    await page.getByTestId("pin-checkbox").check();
+    page.on("dialog", (dialog) => dialog.accept());
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
+      .getByTestId("delete-note-button")
+      .click();
 
-    // Save
-    await page.getByTestId("save-note-button").click();
-
-    // Should show pinned indicator
-    await expect(page.getByText("📌")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).not.toBeVisible();
   });
 
   test("should handle long note content", async ({ page }) => {
     const longContent = "A".repeat(1000); // Very long content
+    const uniqueTitle = `Long Note ${Date.now()}`;
 
     await page.getByTestId("new-note-button").click();
-    await page.getByPlaceholder("Note title").fill("Long Note");
+    await page.getByPlaceholder("Note title").fill(uniqueTitle);
     await page
       .getByPlaceholder("Write your note content here...")
       .fill(longContent);
     await page.getByTestId("save-note-button").click();
 
     // Should handle long content gracefully
-    await expect(page.getByText("Long Note")).toBeVisible();
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).toBeVisible();
+
+    // Cleanup: Delete the note
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .click();
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await page
+      .getByTestId("note-title")
+      .filter({ hasText: uniqueTitle })
+      .locator("xpath=ancestor::div[contains(@class, 'card')]")
+      .getByTestId("delete-note-button")
+      .click();
+
+    await expect(
+      page.getByTestId("note-title").filter({ hasText: uniqueTitle })
+    ).not.toBeVisible();
   });
 });

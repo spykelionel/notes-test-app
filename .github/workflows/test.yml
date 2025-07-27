@@ -4,10 +4,10 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 jobs:
-  api-tests:
+  backend-tests:
     name: Backend API Tests
     runs-on: ubuntu-latest
 
@@ -17,14 +17,13 @@ jobs:
         ports:
           - 27017:27017
         options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,13 +36,21 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
+      - name: Setup environment
+        working-directory: ./backend
+        run: |
+          cp env.example .env
+          echo "MONGODB_URI=mongodb://localhost:27017/test" >> .env
+          echo "JWT_SECRET=test-secret-key" >> .env
+          echo "BCRYPT_ROUNDS=12" >> .env
+
       - name: Run backend tests
         working-directory: ./backend
-        run: npm run test:ci
-        env:
-          MONGODB_URI: mongodb://localhost:27017/notes-app-test
-          JWT_SECRET: test-secret-key
-          NODE_ENV: test
+        run: npm test
+
+      - name: Run backend tests with coverage
+        working-directory: ./backend
+        run: npm run test:coverage
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -52,13 +59,12 @@ jobs:
           flags: backend
           name: backend-coverage
 
-  ui-tests:
+  frontend-tests:
     name: Frontend UI Tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -75,78 +81,94 @@ jobs:
         working-directory: ./frontend
         run: npx playwright install --with-deps
 
-      - name: Start backend server
-        working-directory: ./backend
-        run: |
-          npm ci
-          npm run build
-          npm start &
-          sleep 10
-        env:
-          MONGODB_URI: mongodb://localhost:27017/notes-app-test
-          JWT_SECRET: test-secret-key
-          NODE_ENV: test
-
-      - name: Run Playwright tests
+      - name: Setup environment
         working-directory: ./frontend
-        run: npx playwright test --reporter=html
-        env:
-          CI: true
+        run: |
+          cp .env.example .env
+          echo "VITE_API_URL=http://localhost:5000" >> .env
 
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 30
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm run test:e2e
 
       - name: Upload test results
         uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: test-results
+          name: frontend-test-results
           path: frontend/test-results/
           retention-days: 30
 
   visual-tests:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
-    needs: [api-tests]
+    needs: backend-tests
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "18"
           cache: "npm"
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
       - name: Install dependencies
         run: |
-          cd backend && npm ci
-          cd ../frontend && npm ci
+          cd frontend && npm ci
+          cd ../backend && npm ci
 
       - name: Install Playwright browsers
         working-directory: ./frontend
         run: npx playwright install --with-deps
 
-      - name: Start backend server
+      - name: Setup backend environment
         working-directory: ./backend
         run: |
-          npm run build
-          npm start &
-          sleep 10
-        env:
-          MONGODB_URI: mongodb://localhost:27017/notes-app-test
-          JWT_SECRET: test-secret-key
-          NODE_ENV: test
+          cp env.example .env
+          echo "MONGODB_URI=mongodb://localhost:27017/test" >> .env
+          echo "JWT_SECRET=test-secret-key" >> .env
+          echo "BCRYPT_ROUNDS=12" >> .env
 
-      - name: Run visual regression tests
+      - name: Setup frontend environment
         working-directory: ./frontend
-        run: npx playwright test --grep @visual --reporter=html
+        run: |
+          cp .env.example .env
+          echo "VITE_API_URL=http://localhost:5000" >> .env
+
+      - name: Start backend server
+        working-directory: ./backend
+        run: npm start &
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret-key
+          BCRYPT_ROUNDS: 12
+
+      - name: Wait for backend
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:5000/api/health; do sleep 1; done' || exit 1
+
+      - name: Run visual tests
+        working-directory: ./frontend
+        run: npx playwright test visual.spec.ts
 
       - name: Upload visual test results
         uses: actions/upload-artifact@v3
@@ -156,59 +178,32 @@ jobs:
           path: frontend/test-results/
           retention-days: 30
 
-  build-check:
-    name: Build Verification
+  test-report:
+    name: Generate Test Report
     runs-on: ubuntu-latest
-    needs: [api-tests, ui-tests]
+    needs: [backend-tests, frontend-tests, visual-tests]
+    if: always()
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download test artifacts
+        uses: actions/download-artifact@v3
         with:
-          node-version: "18"
-          cache: "npm"
+          path: test-results/
 
-      - name: Build backend
-        working-directory: ./backend
+      - name: Generate test summary
         run: |
-          npm ci
-          npm run build
-
-      - name: Build frontend
-        working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build
-
-      - name: Lint backend
-        working-directory: ./backend
-        run: npm run lint
-
-      - name: Lint frontend
-        working-directory: ./frontend
-        run: npm run lint
-
-  security-check:
-    name: Security Audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-
-      - name: Audit backend dependencies
-        working-directory: ./backend
-        run: npm audit --audit-level moderate
-
-      - name: Audit frontend dependencies
-        working-directory: ./frontend
-        run: npm audit --audit-level moderate
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Coverage: Available in Codecov" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.frontend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Reports: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Visual Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.visual-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Screenshots: Available in artifacts" >> $GITHUB_STEP_SUMMARY

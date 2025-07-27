@@ -148,11 +148,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
           {errors.content && (
             <p className="mt-1 text-sm text-red-600">{errors.content}</p>
           )}
-          <div className="flex items-center justify-between">
-            <p className="mt-1 text-xs text-gray-500">
-              {content.length > 1000 && "Long Note"}
-            </p>
-          </div>
+
           <p className="mt-1 text-xs text-gray-500">
             {content.length}/10000 characters
           </p>

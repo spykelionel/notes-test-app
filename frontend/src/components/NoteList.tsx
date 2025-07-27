@@ -67,7 +67,10 @@ const NoteList: React.FC<NoteListProps> = ({
                 {note.isPinned && (
                   <Pin className="h-4 w-4 text-primary-600 flex-shrink-0" />
                 )}
-                <h4 className="font-medium text-gray-900 truncate">
+                <h4
+                  data-testid="note-title"
+                  className="font-medium text-gray-900 truncate"
+                >
                   {note.title}
                 </h4>
               </div>

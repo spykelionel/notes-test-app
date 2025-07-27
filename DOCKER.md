@@ -34,8 +34,8 @@ docker compose logs -f
 
 ### 2. Access the Application
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
+- **Frontend**: <http://localhost:3000>
+- **Backend API**: <http://localhost:5000>
 - **Test User**: `user@example.com` / `password123`
 
 ### 3. Stop the Application
@@ -72,7 +72,7 @@ docker compose run --rm test sh -c "cd frontend && npx playwright test visual.sp
 
 ```bash
 # Start services for development
-docker-compose up mongodb backend -d
+docker compose up mongodb backend -d
 
 # Run frontend in development mode
 cd frontend
@@ -84,14 +84,14 @@ npm run dev
 
 ```bash
 # Watch for changes and rebuild
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Database Access
 
 ```bash
 # Connect to MongoDB
-docker-compose exec mongodb mongosh -u admin -p password123
+docker compose exec mongodb mongosh -u admin -p password123
 
 # View database
 use notes-app
@@ -104,11 +104,11 @@ show collections
 
 ```bash
 # Build all images
-docker-compose build
+docker compose build
 
 # Build specific service
-docker-compose build backend
-docker-compose build frontend
+docker compose build backend
+docker compose build frontend
 ```
 
 ### Production Environment Variables
@@ -127,10 +127,10 @@ CORS_ORIGIN=https://yourdomain.com
 
 ```bash
 # Start production services
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Scale services
-docker-compose up -d --scale backend=3
+docker compose up -d --scale backend=3
 ```
 
 ## 🔧 Configuration
@@ -185,21 +185,21 @@ sudo service mongod stop
 
 ```bash
 # Check MongoDB logs
-docker-compose logs mongodb
+docker compose logs mongodb
 
 # Reset database
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 #### Build Failures
 
 ```bash
 # Clean build
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Remove all containers and images
-docker-compose down --rmi all
+docker compose down --rmi all
 docker system prune -a
 ```
 

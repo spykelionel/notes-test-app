@@ -86,6 +86,132 @@ describe("Authentication Endpoints", () => {
       expect(response.body).toHaveProperty("message", "Validation failed");
       expect(response.body.errors).toHaveLength(2); // email and password missing
     });
+
+    it("should return 400 for empty name", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "",
+          email: "test@example.com",
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "name");
+    });
+
+    it("should return 400 for very long name", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "A".repeat(101), // More than 100 characters
+          email: "test@example.com",
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "name");
+    });
+
+    it("should return 400 for very long email", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "Test User",
+          email: "a".repeat(250) + "@example.com", // Very long email
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "email");
+    });
+
+    it("should return 400 for very long name", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "A".repeat(51), // More than 50 characters
+          email: "test@example.com",
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "name");
+    });
+
+    it("should return 400 for email with spaces", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "Test User",
+          email: "test @example.com",
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "email");
+    });
+
+    it("should return 400 for email without domain", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "Test User",
+          email: "test@",
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "email");
+    });
+
+    it("should return 400 for password with only spaces", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "Test User",
+          email: "test@example.com",
+          password: "   ",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "password");
+    });
+
+    it("should return 400 for empty request body", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({})
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(3); // name, email, and password missing
+    });
+
+    it("should return 400 for malformed JSON", async () => {
+      const response = await request(app)
+        .post("/api/auth/register")
+        .set("Content-Type", "application/json")
+        .send("invalid json")
+        .expect(400);
+
+      // Express returns different error format for malformed JSON
+      expect(response.status).toBe(400);
+    });
   });
 
   describe("POST /api/auth/login", () => {
@@ -159,6 +285,119 @@ describe("Authentication Endpoints", () => {
       expect(response.body).toHaveProperty("message", "Validation failed");
       expect(response.body.errors).toHaveLength(1);
       expect(response.body.errors[0]).toHaveProperty("field", "password");
+    });
+
+    it("should return 400 for missing email", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          password: testUser.password,
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "email");
+    });
+
+    it("should return 400 for missing password", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: testUser.email,
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "password");
+    });
+
+    it("should return 400 for empty email", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "",
+          password: testUser.password,
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "email");
+    });
+
+    it("should return 400 for empty password", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: testUser.email,
+          password: "",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "password");
+    });
+
+    it("should return 400 for password with only spaces", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: testUser.email,
+          password: "   ",
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(1);
+      expect(response.body.errors[0]).toHaveProperty("field", "password");
+    });
+
+    it("should return 400 for empty request body", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({})
+        .expect(400);
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
+      expect(response.body.errors).toHaveLength(2); // email and password missing
+    });
+
+    it("should return 400 for malformed JSON", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .set("Content-Type", "application/json")
+        .send("invalid json")
+        .expect(400);
+
+      // Express returns different error format for malformed JSON
+      expect(response.status).toBe(400);
+    });
+
+    it("should handle email case insensitivity", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "TEST@example.com", // Different case
+          password: testUser.password,
+        })
+        .expect(200); // Should work due to email normalization
+
+      expect(response.body).toHaveProperty("message", "Login successful");
+    });
+
+    it("should handle email with leading/trailing spaces", async () => {
+      const response = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "  test@example.com  ", // With spaces
+          password: testUser.password,
+        })
+        .expect(400); // Email validation fails for spaces
+
+      expect(response.body).toHaveProperty("message", "Validation failed");
     });
   });
 });

@@ -391,4 +391,339 @@ describe("Notes Endpoints", () => {
       );
     });
   });
+
+  describe("Additional Negative Test Cases", () => {
+    beforeEach(async () => {
+      testNote = new Note({ ...testNoteData, user: testUser._id });
+      await testNote.save();
+    });
+
+    describe("POST /api/notes - Negative Cases", () => {
+      it("should return 400 for very long title", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "A".repeat(101), // More than 100 characters (model limit)
+            content: "Valid content",
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "title");
+      });
+
+      it("should return 400 for very long content", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "A".repeat(10001), // More than 10000 characters
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "content");
+      });
+
+      it("should return 400 for invalid tags format", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "Valid content",
+            tags: "not-an-array", // Should be array
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+      });
+
+      it("should return 400 for very long tag", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "Valid content",
+            tags: ["a".repeat(21)], // More than 20 characters per tag
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "tags[0]");
+      });
+
+      it("should handle invalid isPinned type gracefully", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "Valid content",
+            isPinned: "not-boolean", // Should be boolean
+          })
+          .expect(500); // Mongoose throws error for type mismatch
+
+        expect(response.body).toHaveProperty("message", "Server error");
+      });
+
+      it("should return 400 for malformed JSON", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .set("Content-Type", "application/json")
+          .send("invalid json")
+          .expect(400);
+
+        // Express returns different error format for malformed JSON
+        expect(response.status).toBe(400);
+      });
+
+      it("should return 401 with invalid token format", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", "InvalidFormat token123")
+          .send(testNoteData)
+          .expect(401);
+
+        expect(response.body).toHaveProperty("message", "Invalid token.");
+      });
+
+      it("should return 401 with malformed token", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer malformed.token.here`)
+          .send(testNoteData)
+          .expect(401);
+
+        expect(response.body).toHaveProperty("message", "Invalid token.");
+      });
+    });
+
+    describe("GET /api/notes/:id - Negative Cases", () => {
+      it("should return 500 for invalid ObjectId format", async () => {
+        const response = await request(app)
+          .get("/api/notes/invalid-id-format")
+          .set("Authorization", `Bearer ${authToken}`)
+          .expect(500);
+
+        expect(response.body).toHaveProperty("message", "Server error");
+      });
+
+      it("should return 401 with malformed token", async () => {
+        const response = await request(app)
+          .get(`/api/notes/${testNote._id}`)
+          .set("Authorization", "Bearer malformed.token.here")
+          .expect(401);
+
+        expect(response.body).toHaveProperty("message", "Invalid token.");
+      });
+    });
+
+    describe("PUT /api/notes/:id - Negative Cases", () => {
+      it("should return 500 for invalid ObjectId format", async () => {
+        const response = await request(app)
+          .put("/api/notes/invalid-id-format")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send(testNoteData)
+          .expect(500);
+
+        expect(response.body).toHaveProperty("message", "Server error");
+      });
+
+      it("should return 400 for very long title in update", async () => {
+        const response = await request(app)
+          .put(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "A".repeat(101), // More than 100 characters (model limit)
+            content: "Valid content",
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "title");
+      });
+
+      it("should return 400 for very long content in update", async () => {
+        const response = await request(app)
+          .put(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "A".repeat(10001), // More than 10000 characters
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "content");
+      });
+
+      it("should return 400 for empty title in update", async () => {
+        const response = await request(app)
+          .put(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "",
+            content: "Valid content",
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "title");
+      });
+
+      it("should return 400 for empty content in update", async () => {
+        const response = await request(app)
+          .put(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "",
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "content");
+      });
+
+      it("should return 400 for title with only spaces in update", async () => {
+        const response = await request(app)
+          .put(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "   ",
+            content: "Valid content",
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "title");
+      });
+
+      it("should return 400 for content with only spaces in update", async () => {
+        const response = await request(app)
+          .put(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "   ",
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty("message", "Validation failed");
+        expect(response.body.errors).toHaveLength(1);
+        expect(response.body.errors[0]).toHaveProperty("field", "content");
+      });
+    });
+
+    describe("DELETE /api/notes/:id - Negative Cases", () => {
+      it("should return 500 for invalid ObjectId format", async () => {
+        const response = await request(app)
+          .delete("/api/notes/invalid-id-format")
+          .set("Authorization", `Bearer ${authToken}`)
+          .expect(500);
+
+        expect(response.body).toHaveProperty("message", "Server error");
+      });
+
+      it("should return 401 with malformed token for delete", async () => {
+        const response = await request(app)
+          .delete(`/api/notes/${testNote._id}`)
+          .set("Authorization", `Bearer malformed.token.here`)
+          .expect(401);
+
+        expect(response.body).toHaveProperty("message", "Invalid token.");
+      });
+    });
+
+    describe("Edge Cases and Security Tests", () => {
+      it("should handle SQL injection attempts in title", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "'; DROP TABLE notes; --",
+            content: "Valid content",
+          })
+          .expect(201); // Should be handled safely by Mongoose
+
+        expect(response.body.note).toHaveProperty(
+          "title",
+          "'; DROP TABLE notes; --"
+        );
+      });
+
+      it("should handle XSS attempts in content", async () => {
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Valid Title",
+            content: "<script>alert('xss')</script>",
+          })
+          .expect(201); // Should be handled safely by Mongoose
+
+        expect(response.body.note).toHaveProperty(
+          "content",
+          "<script>alert('xss')</script>"
+        );
+      });
+
+      it("should handle very large request body", async () => {
+        const largeContent = "A".repeat(5000); // Large but within limits
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Large Note",
+            content: largeContent,
+          })
+          .expect(201);
+
+        expect(response.body.note).toHaveProperty("content", largeContent);
+      });
+
+      it("should handle special characters in title and content", async () => {
+        const specialChars = "!@#$%^&*()_+-=[]{}|;':\",./<>?`~";
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: specialChars,
+            content: specialChars,
+          })
+          .expect(201);
+
+        expect(response.body.note).toHaveProperty("title", specialChars);
+        expect(response.body.note).toHaveProperty("content", specialChars);
+      });
+
+      it("should handle unicode characters", async () => {
+        const unicodeText = "🎉🎊🎈 Hello 世界 🌍 Привет 👋";
+        const response = await request(app)
+          .post("/api/notes")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: unicodeText,
+            content: unicodeText,
+          })
+          .expect(201);
+
+        expect(response.body.note).toHaveProperty("title", unicodeText);
+        expect(response.body.note).toHaveProperty("content", unicodeText);
+      });
+    });
+  });
 });

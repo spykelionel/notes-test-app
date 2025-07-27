@@ -26,10 +26,10 @@ git clone <repository-url>
 cd notes-app
 
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 2. Access the Application
@@ -41,7 +41,7 @@ docker-compose logs -f
 ### 3. Stop the Application
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## 🧪 Running Tests
@@ -50,20 +50,20 @@ docker-compose down
 
 ```bash
 # Start test environment
-docker-compose --profile test up --abort-on-container-exit --exit-code-from test
+docker compose --profile test up --abort-on-container-exit --exit-code-from test
 ```
 
 ### Run Specific Test Suites
 
 ```bash
 # Backend tests only
-docker-compose run --rm test sh -c "cd backend && npm test"
+docker compose run --rm test sh -c "cd backend && npm test"
 
 # Frontend tests only
-docker-compose run --rm test sh -c "cd frontend && npm run test:e2e"
+docker compose run --rm test sh -c "cd frontend && npm run test:e2e"
 
 # Visual tests only
-docker-compose run --rm test sh -c "cd frontend && npx playwright test visual.spec.ts"
+docker compose run --rm test sh -c "cd frontend && npx playwright test visual.spec.ts"
 ```
 
 ## 🏗️ Development Workflow

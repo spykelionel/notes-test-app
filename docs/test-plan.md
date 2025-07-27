@@ -302,4 +302,4 @@ const testNote = {
 
 - [Testing Best Practices](https://testing-library.com/docs/guiding-principles)
 - [API Testing Patterns](https://martinfowler.com/articles/microservice-testing/)
-- [Visual Testing Guide](https://www.chromatic.com/docs/visual-testing)
+- [Visual Testing Guide](https://www.chromatic.com/features/visual-test)

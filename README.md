@@ -2,6 +2,8 @@
 
 A full-stack notes application with comprehensive automated testing demonstrating UI automation, API testing, and visual regression testing.
 
+> Note: The database secrets have been exposed for test purposes only.
+
 ## 🚀 Quick Start (1-2 minutes)
 
 ### Prerequisites

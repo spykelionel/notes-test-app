@@ -1,0 +1,50 @@
+# Test environment Dockerfile
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache curl chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont
+
+# Set environment variables for Playwright
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Copy package files for both frontend and backend
+COPY frontend/package*.json ./frontend/
+COPY backend/package*.json ./backend/
+
+# Install dependencies
+RUN cd frontend && npm ci
+RUN cd backend && npm ci
+
+# Install Playwright browsers
+RUN cd frontend && npx playwright install --with-deps chromium
+
+# Copy source code
+COPY frontend/ ./frontend/
+COPY backend/ ./backend/
+
+# Build both applications
+RUN cd backend && npm run build
+RUN cd frontend && npm run build
+
+# Create test script
+RUN echo '#!/bin/sh\n\
+echo "Starting test environment..."\n\
+echo "Backend tests:"\n\
+cd backend && npm test\n\
+echo "Frontend tests:"\n\
+cd frontend && npm run test:e2e\n\
+echo "Visual tests:"\n\
+cd frontend && npx playwright test visual.spec.ts\n\
+echo "All tests completed!"' > /app/run-tests.sh
+
+RUN chmod +x /app/run-tests.sh
+
+# Expose ports
+EXPOSE 3000 5000
+
+# Default command
+CMD ["/app/run-tests.sh"] 

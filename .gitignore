@@ -11,3 +11,22 @@ frontend/.DS_Store
 backend/node_modules/
 backend/.env
 backend/.DS_Store
+
+
+# test reports
+backend/tests/reports/
+frontend/tests/reports/
+
+# test coverage
+backend/coverage/
+frontend/coverage/
+
+# test logs
+backend/tests/logs/
+frontend/tests/logs/
+
+# test screenshots
+backend/tests/screenshots/
+frontend/tests/screenshots/
+
+# test videos

@@ -57,11 +57,11 @@ describe("Notes Endpoints", () => {
       );
       expect(response.body).toHaveProperty("notes");
       expect(response.body.notes).toHaveLength(2);
-      expect(response.body.notes[0]).toHaveProperty(
-        "title",
-        testNoteData.title
-      );
-      expect(response.body.notes[1]).toHaveProperty("title", "Second Note");
+
+      // Check that both notes exist without assuming order
+      const noteTitles = response.body.notes.map((note: any) => note.title);
+      expect(noteTitles).toContain(testNoteData.title);
+      expect(noteTitles).toContain("Second Note");
     });
 
     it("should return empty array when user has no notes", async () => {
